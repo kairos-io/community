@@ -45,11 +45,16 @@ Welcome to the Kairos community page! Here, you'll find all the necessary inform
 
 [Kairos](https://kairos.io) is a meta-Linux distribution that allows you to create immutable, bootable Kubernetes and OS images for your edge devices as easily as writing a Dockerfile. It offers an optional P2P mesh with distributed ledger, automating node bootstrapping and coordination. Updating nodes is as simple as CI/CD: push a new image to your container registry, and let secure, risk-free A/B atomic upgrades take care of the rest.
 
+### Links
+
 - :books: [Website](https://kairos.io)
 - 🧙 [Project Board](https://github.com/orgs/kairos-io/projects/1/views/1)
 - 🥇 [Roadmap](https://github.com/orgs/kairos-io/projects/2)
 - :loudspeaker: [Planned releases](https://github.com/kairos-io/c3os/issues?q=is%3Aissue+is%3Aopen+label%3Arelease)
 - :date: [Office hours calendar](https://calendar.google.com/calendar/u/0/embed?src=c_6d65f26502a5a67c9570bb4c16b622e38d609430bce6ce7fc1d8064f2df09c11@group.calendar.google.com&ctz=Europe/Rome)
+- [Matrix](https://matrix.to/#/#kairos-io:matrix.org)
+- [Slack](https://join.slack.com/t/spectrocloudcommunity/shared_invite/zt-1k7wsz840-ugSsPKzZCP5gkasJ0kNpqw)
+- [Discussions](https://github.com/kairos-io/kairos/discussions)
 
 ## Interested Parties
 
