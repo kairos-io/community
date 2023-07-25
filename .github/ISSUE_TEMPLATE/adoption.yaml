@@ -20,7 +20,7 @@ body:
   - type: input
     id: contact
     attributes:
-      label: Username on the Kairos Slack / Matrix
+      label: Username on the Kairos Slack / Matrix, e-mail, etc.
       description: Tell us how we can contact you
     validations:
       required: true
