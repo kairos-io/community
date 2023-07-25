@@ -1,0 +1,45 @@
+repository:
+  name: "community"
+  description: "Kairos community content"
+  homepage_url: "https://kairos.io"
+  topics: kubernetes, linux
+
+  default_branch: main
+  allow_squash_merge: true
+  allow_merge_commit: true
+  allow_rebase_merge: true
+
+  teams:
+    - name: "maintainers"
+      permission: "admin"
+    - name: "administrators"
+      permission: "admin"
+    - name: "community-maintainers"
+      permission: "maintain"
+    - name: "contributors"
+      permission: "push"
+
+branches:
+  - name: main
+    protection:
+      required_pull_request_reviews:
+        required_approving_review_count: 1
+        dismiss_stale_reviews: true
+        require_code_owner_reviews: true
+        dismissal_restrictions: {}
+        code_owner_approval: true
+        required_conversation_resolution: true
+
+      required_status_checks:
+        strict: true
+        contexts:
+          - "DCO"
+
+      enforce_admins: true
+
+      required_linear_history: true
+
+      restrictions:
+        users: []
+        apps: []
+        teams: []
