@@ -60,8 +60,8 @@ Welcome to the Kairos community page! Here, you'll find all the necessary inform
 
 The community meetings calendar is available here: https://calendar.google.com/calendar/u/0/embed?src=c_6d65f26502a5a67c9570bb4c16b622e38d609430bce6ce7fc1d8064f2df09c11@group.calendar.google.com&ctz=Europe/Rome
 
-Monthly meetup agenda: https://www.google.com/url?q=https://docs.google.com/document/d/1ZdeU5zWAQ3kddw_v9cPjHhoJ2rSuLij69AG9G15HkEU&sa=D&source=calendar&ust=1691827289849764&usg=AOvVaw263m36XK6ZS9vnATwy1o2P
-Office hours agenda: https://www.google.com/url?q=https://docs.google.com/document/d/1Xj0Y6wDk4qA4glOzWw9rmCG1JthFHqg2Z_reYya9BD8&sa=D&source=calendar&ust=1691827289849764&usg=AOvVaw2fOxP47aIYBpbHgIQdz3x6
+[Monthly meetup agenda](https://www.google.com/url?q=https://docs.google.com/document/d/1ZdeU5zWAQ3kddw_v9cPjHhoJ2rSuLij69AG9G15HkEU&sa=D&source=calendar&ust=1691827289849764&usg=AOvVaw263m36XK6ZS9vnATwy1o2P)
+[Office hours agenda](https://www.google.com/url?q=https://docs.google.com/document/d/1Xj0Y6wDk4qA4glOzWw9rmCG1JthFHqg2Z_reYya9BD8&sa=D&source=calendar&ust=1691827289849764&usg=AOvVaw2fOxP47aIYBpbHgIQdz3x6)
 
 ## Interested Parties
 
