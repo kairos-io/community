@@ -4,5 +4,6 @@ This page lists individual and organization stakeholders who are using Kairos in
 
 ## Adopters
 
-| Person | Organization | Other Affiliations | GitHub Username | Gitlab Username |
-|--------|--------------|--------------------|-----------------|-----------------|
+| Person | Organization | Project | Description |
+|--------|--------------|---------|-------------|
+| [Jacques Landru](https://github.com/j-landru) | [IMT Nord Europe](https://imt-nord-europe.fr/en/) | [abcd](https://framagit.org/j-landru/abcd) | Polimorphic OS used for labs in education |
