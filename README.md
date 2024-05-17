@@ -53,7 +53,7 @@ Welcome to the Kairos community page! Here, you'll find all the necessary inform
 - :loudspeaker: [Planned releases](https://github.com/kairos-io/c3os/issues?q=is%3Aissue+is%3Aopen+label%3Arelease)
 - :date: [Office hours calendar](https://calendar.google.com/calendar/u/0/embed?src=c_6d65f26502a5a67c9570bb4c16b622e38d609430bce6ce7fc1d8064f2df09c11@group.calendar.google.com&ctz=Europe/Rome)
 - [Matrix](https://matrix.to/#/#kairos-io:matrix.org)
-- [Slack](https://join.slack.com/t/spectrocloudcommunity/shared_invite/zt-1k7wsz840-ugSsPKzZCP5gkasJ0kNpqw)
+- [Slack](https://slack.cncf.io/#kairos) (#kairos in the CNCF Slack workspace)
 - [Discussions](https://github.com/kairos-io/kairos/discussions)
 
 ## Community meetings
