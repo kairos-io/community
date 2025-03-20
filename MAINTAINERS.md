@@ -17,6 +17,7 @@ See also [our Contributors](/CONTRIBUTORS.md) page.
 
 This is the list of people who were Kairos maintainers at some point but aren't at the moment.
 
+| Name                     | GitHub ID                                              | Affiliation                  | Role                                      |
+| ------------------------ | ------------------------------------------------------ | -------------------------    | -----------                               |
 | Jacob Payne              | [@paynejacob](https://github.com/paynejacob )          |  Spectro Cloud               | Maintainer                                |
 | Oz Tiram                 | [@oz123](https://github.com/oz123 )                    |  Spectro Cloud               | Maintainer                                |
-
