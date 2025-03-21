@@ -16,7 +16,7 @@ Kairos is currently a **CNCF Sandbox Project**, meaning it is in the early stage
 
 ### Roadmap
 
-Kairos follows a transparent and community-driven [**roadmap**](https://github.com/orgs/kairos-io/projects/2), which outlines planned features, priorities, and ongoing efforts. Organizations contributing maintainers are encouraged to align their contributions with this roadmap to ensure consistency and project-wide progress. The latest roadmap is publicly available at:
+Kairos follows a transparent and community-driven [**roadmap**](https://github.com/orgs/kairos-io/projects/2), which outlines planned features, priorities, and ongoing efforts. Organizations contributing maintainers are encouraged to align their contributions with this roadmap to ensure consistency and project-wide progress.
 
 ### Benefits for Contributing Organizations
 
