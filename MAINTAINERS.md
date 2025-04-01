@@ -9,6 +9,8 @@ Maintainers are approvers who have shown good technical judgement in guiding fea
 | Itxaka Serrano Garcia    | [@itxaka](https://github.com/itxaka )                  |  Spectro Cloud               | Administrator, Maintainer                 |
 | Mauro Morales            | [@mauromorales](https://github.com/mauromorales )      |  Spectro Cloud               | Administrator, Maintainer                 |
 
+![maintainers-2](https://github.com/user-attachments/assets/3d071e04-c113-46b4-9eb9-a2655f070728)
+
 See also [our Contributors](/CONTRIBUTORS.md) page.
 
 **Note**: Please refer to the [Project Governance](/GOVERNANCE.md) for more information on the responsibilities and privileges of a maintainer in Kairos.
