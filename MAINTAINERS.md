@@ -8,6 +8,7 @@ Maintainers are approvers who have shown good technical judgement in guiding fea
 | Dimitris Karakasilis     | [@jimmykarily](https://github.com/jimmykarily )        |  Spectro Cloud               | Administrator, Maintainer                 |
 | Itxaka Serrano Garcia    | [@itxaka](https://github.com/itxaka )                  |  Spectro Cloud               | Administrator, Maintainer                 |
 | Mauro Morales            | [@mauromorales](https://github.com/mauromorales )      |  Spectro Cloud               | Administrator, Maintainer                 |
+| Rishi Anand              | [@rishi-anand](https://github.com/rishi-anand)         |  Spectro Cloud               | Maintainer                 |
 
 ![maintainers-2](https://github.com/user-attachments/assets/3d071e04-c113-46b4-9eb9-a2655f070728)
 
