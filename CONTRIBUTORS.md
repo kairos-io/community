@@ -14,5 +14,4 @@ These are active contributors who have made multiple contributions to the projec
 | Martin Schuessler   | [@c0ffee](https://github.com/c0ffee)                   |
 | Andreas Reitz       | [@areitz86](https://github.com/areitz86)               |
 | Ben Corrado         | [@bencorrado](https://github.com/bencorrado)           |
-| William Rizzo       | [@wrkode](https://github.com/wrkode)                   |
 | Jasper De Keukelaere| [@jasperdekeuk](https://github.com/jasperdekeuk)       |
