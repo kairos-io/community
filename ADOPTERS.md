@@ -12,3 +12,4 @@ This page lists individual and organization stakeholders who are using Kairos in
 | [Bryan Lee](https://github.com/6ixfalls) | | [TaoNet](https://taonet.work/) | K8s powered PaaS |
 | [Ludea](https://github.com/Ludea) | | [Sparus](https://github.com/Ludea/Sparus) | Game launcher |
 | [Ben Corrado](https://github.com/bencorrado) | [DeEEP Network](https://www.deeep.network/) | DeEEP Device | DeEEP delivers an enterprise-grade Web3 cloud hosting solution to compete directly with centralized giants like Amazon and Google |
+| [Dario Tranchitella](https://github.com/prometherion) | [CLASTIX](https://clastix.io/) | kMetal | kMetal leverages Hosted Control Planes for Bare Metal Kubernetes clusters, offering Virtual Machines based on KubeVirt and Kairos to achieve a Cloud Native hyper-converged infrastructure |
