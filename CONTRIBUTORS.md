@@ -15,3 +15,4 @@ These are active contributors who have made multiple contributions to the projec
 | Andreas Reitz       | [@areitz86](https://github.com/areitz86)               |
 | Ben Corrado         | [@bencorrado](https://github.com/bencorrado)           |
 | Jasper De Keukelaere| [@jasperdekeuk](https://github.com/jasperdekeuk)       |
+| Will Crum           | [@wcrum](https://github.com/wcrum)                     |
