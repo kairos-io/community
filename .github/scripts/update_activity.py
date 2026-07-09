@@ -187,10 +187,9 @@ def rewrite(text, now):
 
     new_rows = []
     for line in lines[start:end]:
-        cells = split_row(line)
         if len(cells) < 2:
-            new_rows.append(line)
-            continue
+            print(f"error: malformed contributor row: {line}", file=sys.stderr)
+            sys.exit(1)
         contributor, github_id = cells[0], cells[1]
         match = HANDLE_RE.search(github_id)
         if not match:
