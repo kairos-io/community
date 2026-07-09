@@ -1,0 +1,48 @@
+name: Contributor activity
+
+# Refresh the "Last activity" column in CONTRIBUTORS.md once a month, and on
+# demand. Opens/updates a PR with the result (main is protected, so the bot
+# cannot push directly — the monthly PR review doubles as the human checkpoint
+# for the GOVERNANCE.md off-boarding process).
+on:
+  schedule:
+    # 06:00 UTC on the 1st of every month.
+    - cron: "0 6 1 * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Refresh last-activity column
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python .github/scripts/update_activity.py
+
+      - name: Open or update pull request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore: refresh contributor last-activity"
+          title: "chore: refresh contributor last-activity"
+          body: |
+            Automated monthly refresh of the **Last activity** column in
+            `CONTRIBUTORS.md`.
+
+            Recency is the most recent of each contributor's issue/PR
+            involvement and commits across the public `kairos-io` org. See
+            `GOVERNANCE.md` for the off-boarding guidance this supports.
+
+            _This PR is regenerated each run; no manual edits needed._
+          branch: chore/contributor-activity
+          delete-branch: true
+          add-paths: CONTRIBUTORS.md
