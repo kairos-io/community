@@ -58,11 +58,17 @@ def api_get(path, params):
             return json.load(resp)
     except urllib.error.HTTPError as exc:
         # 422 = the account no longer exists / query rejected; treat as no data.
-        if exc.code in (403, 429):
-            # Rate limited: back off once and retry.
-            time.sleep(30)
+        # Retry only when rate limiting is indicated (primary/secondary).
+        retry_after = exc.headers.get("Retry-After")
+        remaining = exc.headers.get("X-RateLimit-Remaining")
+        if exc.code in (403, 429) and (retry_after or remaining == "0"):
+            time.sleep(int(retry_after) if retry_after else 30)
             with urllib.request.urlopen(req, timeout=30) as resp:
                 return json.load(resp)
+        if exc.code in (401, 403):
+            raise RuntimeError(
+                f"GitHub API authorization failed ({exc.code}) for {url}; check workflow token permissions."
+            ) from exc
         print(f"  warning: {exc.code} for {url}", file=sys.stderr)
         return None
 
