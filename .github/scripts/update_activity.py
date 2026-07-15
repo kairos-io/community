@@ -14,6 +14,7 @@ not take any action on its own. See .github/workflows/contributor-activity.yml.
 import json
 import os
 import re
+import socket
 import sys
 import time
 import urllib.error
@@ -24,8 +25,13 @@ from datetime import datetime, timezone
 ORG = "kairos-io"
 CONTRIBUTORS_FILE = os.environ.get("CONTRIBUTORS_FILE", "CONTRIBUTORS.md")
 API = "https://api.github.com"
-# Be polite to the Search API secondary rate limits (~30 req/min authenticated).
+ACTIVITY_HEADER = "Last activity"
+
+# Minimum spacing between Search API requests, to stay clear of the secondary
+# rate limits (~30 req/min authenticated). Applied once per request.
 SLEEP_BETWEEN_CALLS = float(os.environ.get("ACTIVITY_SLEEP", "2"))
+# Retries for transient failures (network blips, rate limiting).
+MAX_RETRIES = 4
 
 # Bucket thresholds in days, evaluated in order; first match wins.
 BUCKETS = [
@@ -43,8 +49,39 @@ HANDLE_RE = re.compile(r"\[@([A-Za-z0-9-]+)\]")
 FOOTER_RE = re.compile(r"^_Last activity refreshed .*_$")
 
 
+def _is_rate_limited(exc):
+    """True if an HTTPError represents primary/secondary rate limiting."""
+    if exc.code == 429:
+        return True
+    if exc.code == 403:
+        headers = exc.headers or {}
+        # Secondary limit signals a Retry-After; primary limit exhausts the
+        # remaining budget. A permission/auth 403 has neither.
+        if headers.get("Retry-After") is not None:
+            return True
+        if headers.get("X-RateLimit-Remaining") == "0":
+            return True
+    return False
+
+
+def _retry_wait(exc, attempt):
+    """How long to sleep before retrying a rate-limited request."""
+    headers = exc.headers or {}
+    retry_after = headers.get("Retry-After")
+    if retry_after and retry_after.isdigit():
+        return int(retry_after)
+    # Fall back to exponential-ish backoff.
+    return min(60, 5 * (attempt + 1))
+
+
 def api_get(path, params):
-    """GET a GitHub API endpoint, returning parsed JSON (or None on 4xx)."""
+    """GET a GitHub API endpoint, returning parsed JSON.
+
+    Returns None when the query is rejected (HTTP 422 — e.g. the account no
+    longer exists). Retries transient network errors and genuine rate limiting.
+    Fails loudly (exits) on auth/permission errors, since those are a workflow
+    misconfiguration that silently degrading the output would hide.
+    """
     query = urllib.parse.urlencode(params)
     url = f"{API}{path}?{query}"
     req = urllib.request.Request(url)
@@ -53,24 +90,33 @@ def api_get(path, params):
     token = os.environ.get("GITHUB_TOKEN")
     if token:
         req.add_header("Authorization", f"Bearer {token}")
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            return json.load(resp)
-    except urllib.error.HTTPError as exc:
-        # 422 = the account no longer exists / query rejected; treat as no data.
-        # Retry only when rate limiting is indicated (primary/secondary).
-        retry_after = exc.headers.get("Retry-After")
-        remaining = exc.headers.get("X-RateLimit-Remaining")
-        if exc.code in (403, 429) and (retry_after or remaining == "0"):
-            time.sleep(int(retry_after) if retry_after else 30)
+
+    for attempt in range(MAX_RETRIES):
+        # Throttle before every request (no wasted trailing sleep elsewhere).
+        time.sleep(SLEEP_BETWEEN_CALLS)
+        try:
             with urllib.request.urlopen(req, timeout=30) as resp:
                 return json.load(resp)
-        if exc.code in (401, 403):
-            raise RuntimeError(
-                f"GitHub API authorization failed ({exc.code}) for {url}; check workflow token permissions."
-            ) from exc
-        print(f"  warning: {exc.code} for {url}", file=sys.stderr)
-        return None
+        except urllib.error.HTTPError as exc:
+            if _is_rate_limited(exc):
+                wait = _retry_wait(exc, attempt)
+                print(f"  rate limited, sleeping {wait}s", file=sys.stderr)
+                time.sleep(wait)
+                continue
+            if exc.code == 422:
+                return None  # query rejected / account gone
+            if exc.code in (401, 403):
+                sys.exit(
+                    f"error: {exc.code} from {path} — check the token's "
+                    f"permissions; refusing to silently degrade output."
+                )
+            print(f"  warning: {exc.code} for {url}", file=sys.stderr)
+            return None
+        except (urllib.error.URLError, socket.timeout) as exc:
+            print(f"  transient error ({exc}); retrying", file=sys.stderr)
+            time.sleep(min(60, 5 * (attempt + 1)))
+
+    sys.exit(f"error: giving up on {path} after {MAX_RETRIES} attempts")
 
 
 def parse_ts(value):
@@ -117,9 +163,7 @@ def latest_commit(handle):
 
 
 def bucket_for(now, ts):
-    """Return the recency label for a last-activity timestamp."""
-    if ts is None:
-        return OLDER_LABEL  # caller only passes real timestamps here
+    """Return the recency label for a (non-None) last-activity timestamp."""
     age_days = (now - ts).total_seconds() / 86400
     for threshold, label in BUCKETS:
         if age_days <= threshold:
@@ -130,9 +174,7 @@ def bucket_for(now, ts):
 def last_activity_cell(handle, now):
     """Compute the linked recency cell for a single contributor."""
     inv_ts, inv_url = latest_involvement(handle)
-    time.sleep(SLEEP_BETWEEN_CALLS)
     commit_ts, commit_url = latest_commit(handle)
-    time.sleep(SLEEP_BETWEEN_CALLS)
 
     candidates = [(t, u) for t, u in ((inv_ts, inv_url), (commit_ts, commit_url)) if t]
     if not candidates:
@@ -140,14 +182,11 @@ def last_activity_cell(handle, now):
 
     ts, url = max(candidates, key=lambda c: c[0])
     label = bucket_for(now, ts)
-    if url:
-        return f"[{label}]({url})"
-    return label
+    return f"[{label}]({url})" if url else label
 
 
 def split_row(line):
     """Split a markdown table row into its trimmed cell values."""
-    # Drop the leading/trailing pipe, then split.
     inner = line.strip()
     if inner.startswith("|"):
         inner = inner[1:]
@@ -156,28 +195,45 @@ def split_row(line):
     return [c.strip() for c in inner.split("|")]
 
 
+def make_row(cells):
+    return "| " + " | ".join(cells) + " |"
+
+
 def is_separator(line):
     return bool(re.match(r"^\s*\|?\s*:?-{2,}", line)) and set(line.strip()) <= set("|-: ")
 
 
 def rewrite(text, now):
-    """Rewrite the contributor table in-place, adding the activity column."""
+    """Rewrite the contributor table in-place, adding the activity column.
+
+    Preserves whatever base columns the table already has (Contributor,
+    GitHub ID, and any future additions) and (re)appends "Last activity" as the
+    final column. Fails loudly on a malformed table rather than corrupting it.
+    """
     lines = text.splitlines()
 
-    # Locate the header row: a table row mentioning both column names.
+    # Locate the header row: a table row naming both required columns.
     header_idx = None
     for i, line in enumerate(lines):
         if line.lstrip().startswith("|") and "Contributor" in line and "GitHub ID" in line:
             header_idx = i
             break
     if header_idx is None:
-        print("error: could not find the contributor table header", file=sys.stderr)
-        sys.exit(1)
+        sys.exit("error: could not find the contributor table header")
 
     sep_idx = header_idx + 1
     if sep_idx >= len(lines) or not is_separator(lines[sep_idx]):
-        print("error: expected a separator row under the table header", file=sys.stderr)
-        sys.exit(1)
+        sys.exit("error: expected a separator row under the table header")
+
+    header_cells = split_row(lines[header_idx])
+    # If we've run before, the last column is ours — strip it to get the base.
+    has_activity = bool(header_cells) and header_cells[-1] == ACTIVITY_HEADER
+    base_header = header_cells[:-1] if has_activity else header_cells
+    n_base = len(base_header)
+
+    gh_idx = next((i for i, c in enumerate(base_header) if "GitHub ID" in c), None)
+    if gh_idx is None:
+        sys.exit("error: could not find the 'GitHub ID' column in the header")
 
     # Collect contiguous data rows.
     start = sep_idx + 1
@@ -187,10 +243,14 @@ def rewrite(text, now):
 
     new_rows = []
     for line in lines[start:end]:
-        if len(cells) < 2:
-            print(f"error: malformed contributor row: {line}", file=sys.stderr)
-            sys.exit(1)
-        contributor, github_id = cells[0], cells[1]
+        cells = split_row(line)
+        base_cells = cells[:-1] if has_activity else cells
+        if len(base_cells) != n_base:
+            sys.exit(
+                f"error: malformed table row (expected {n_base} columns, "
+                f"got {len(base_cells)}): {line!r}"
+            )
+        github_id = base_cells[gh_idx]
         match = HANDLE_RE.search(github_id)
         if not match:
             cell = NONE_LABEL
@@ -198,10 +258,10 @@ def rewrite(text, now):
             handle = match.group(1)
             print(f"  {handle} ...", file=sys.stderr)
             cell = last_activity_cell(handle, now)
-        new_rows.append(f"| {contributor} | {github_id} | {cell} |")
+        new_rows.append(make_row(base_cells + [cell]))
 
-    header = "| Contributor | GitHub ID | Last activity |"
-    separator = "|-------------|-----------|---------------|"
+    header = make_row(base_header + [ACTIVITY_HEADER])
+    separator = make_row(["---"] * (n_base + 1))
 
     rebuilt = lines[:header_idx] + [header, separator] + new_rows + lines[end:]
 
@@ -213,7 +273,6 @@ def rewrite(text, now):
             rebuilt[i] = footer
             break
     else:
-        # Insert right after the table block.
         insert_at = header_idx + 2 + len(new_rows)
         rebuilt.insert(insert_at, "")
         rebuilt.insert(insert_at + 1, footer)
