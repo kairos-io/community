@@ -1,0 +1,11 @@
+{
+  "kairos":          { "branch": "master", "overlays": ["go", "dockerfile"] },
+  "kairos-agent":    { "branch": "main",   "overlays": ["go"] },
+  "kairos-sdk":      { "branch": "main",   "overlays": ["go"] },
+  "immucore":        { "branch": "main",   "overlays": ["go"] },
+  "AuroraBoot":      { "branch": "main",   "overlays": ["go", "dockerfile"] },
+  "kairos-init":     { "branch": "main",   "overlays": ["go", "dockerfile"] },
+  "provider-kairos": { "branch": "main",   "overlays": ["go"] },
+  "osbuilder":       { "branch": "master", "overlays": ["dockerfile"] },
+  "hadron":          { "branch": "main",   "overlays": ["dockerfile"] }
+}
