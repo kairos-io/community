@@ -9,3 +9,4 @@
   change. Renovate handles routine bumps and a manual bump buried in a feature
   branch is hard to review and hard to revert.
 - When adding a dependency, check whether `kairos-sdk` already wraps it.
+- When creating new tests, follow the ginkgo/gomega style as the rest of the tests in kairos projects do.
