@@ -1,0 +1,37 @@
+name: Repo access audit
+
+# Monthly check that every kairos-io repo grants the standard governance team
+# access (administrators=admin, maintainers=maintain, contributors=triage).
+# On drift it opens — or updates — a tracking issue in kairos-io/kairos.
+#
+# Requires a repo secret GOVERNANCE_AUDIT_TOKEN: a PAT belonging to a kairos-io
+# org owner (scopes: read:org, repo). Org owners have admin on every repo, which
+# the teams API needs; the default GITHUB_TOKEN cannot read other repos' teams
+# or open issues cross-repo.
+
+on:
+  schedule:
+    - cron: "0 6 1 * *"   # 06:00 UTC on the 1st of each month
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repo-access-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run repo access audit
+        env:
+          GH_TOKEN: ${{ secrets.GOVERNANCE_AUDIT_TOKEN }}
+        run: python scripts/repo_access_audit.py
