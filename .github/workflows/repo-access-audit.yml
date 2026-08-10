@@ -1,0 +1,62 @@
+name: Repo access audit
+
+# Checks that every kairos-io repo grants the standard governance team access
+# (administrators=admin, maintainers=maintain, contributors=triage). On drift it
+# opens, or updates, a tracking issue in kairos-io/kairos.
+#
+# Runs monthly, and can be started by hand at any time from the Actions tab. A
+# manual run defaults to a dry run, so you can check the current state without
+# opening or closing anyone's ticket; untick the box to let it manage the issue.
+#
+# Requires a repo secret GOVERNANCE_AUDIT_TOKEN: a PAT belonging to any
+# kairos-io org member, with read:org (to read the teams) and public_repo (to
+# file the tracking issue). The default GITHUB_TOKEN is not enough: it cannot
+# read org teams or open issues in another repo.
+
+on:
+  schedule:
+    - cron: "0 6 1 * *"   # 06:00 UTC on the 1st of each month
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Report only. Do not open, update or close the tracking issue."
+        type: boolean
+        default: true
+      repo:
+        description: "Audit a single repository instead of the whole org (optional)."
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repo-access-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run repo access audit
+        env:
+          GH_TOKEN: ${{ secrets.GOVERNANCE_AUDIT_TOKEN }}
+          # Empty on the scheduled run, which is what we want: the schedule
+          # manages the issue, a manual run defaults to reporting only.
+          DRY_RUN: ${{ inputs.dry_run }}
+          ONLY_REPO: ${{ inputs.repo }}
+        run: |
+          args=()
+          if [ "$DRY_RUN" = "true" ]; then
+            args+=(--dry-run)
+          fi
+          if [ -n "$ONLY_REPO" ]; then
+            args+=(--repo "$ONLY_REPO")
+          fi
+          python scripts/repo_access_audit.py "${args[@]}"
