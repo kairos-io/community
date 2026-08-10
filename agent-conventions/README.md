@@ -71,12 +71,12 @@ to something observed in our repositories.
 1. **`kairos-io/skills` is private**, so `base.md` names it without linking to
    it — a link would 404 for most readers of this public repo. Making it public
    would be better for contributors and is worth deciding on its own merits.
-2. **The `Co-developed-by:` trailer proposed in #4246 is deliberately not here.**
-   It is not what we actually do: our agent-opened pull requests carry a DCO
-   `Signed-off-by:` with the human's identity and no AI trailer, including from
-   the proposal's own author. `base.md` therefore states the accountability rule
-   we genuinely enforce. If we want the trailer, let us adopt it knowingly and
-   apply it consistently rather than shipping a policy nobody follows.
+2. **Which disclosure trailer?** The trailer is in `base.md` now — it was left
+   out of the first draft on the grounds that nobody actually used it, and
+   review said the team wants it, which settles that. What is still open is the
+   spelling: #4246 proposed `Co-developed-by:` following systemd, while
+   `Co-Authored-By:` is what GitHub itself recognises and renders. `base.md`
+   currently uses the former. Worth picking one deliberately.
 3. **The sync workflow needs an `AGENT_CONVENTIONS_TOKEN` secret** with
    `contents:write` and `pull-requests:write` on the target repositories.
    Nothing syncs until that exists.
