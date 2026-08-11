@@ -1,0 +1,75 @@
+name: Sync agent conventions
+
+# Regenerate each downstream repository's AGENTS.md whenever the shared sources
+# change, and open a pull request with the result. Default branches everywhere
+# are protected, so this cannot push directly — the sync PR is the review point,
+# which is deliberate: a change to org-wide agent instructions should be seen by
+# the repo's maintainers, not applied silently.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "agent-conventions/**"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    outputs:
+      targets: ${{ steps.targets.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: targets
+        run: echo "matrix=$(python3 agent-conventions/generate.py repos)" >> "$GITHUB_OUTPUT"
+
+  sync:
+    needs: list
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJSON(needs.list.outputs.targets) }}
+    steps:
+      - name: Check out the conventions
+        uses: actions/checkout@v4
+        with:
+          path: community
+
+      - name: Check out ${{ matrix.target.repo }}
+        uses: actions/checkout@v4
+        with:
+          repository: kairos-io/${{ matrix.target.repo }}
+          ref: ${{ matrix.target.branch }}
+          token: ${{ secrets.AGENT_CONVENTIONS_TOKEN }}
+          path: target
+
+      - name: Regenerate AGENTS.md
+        env:
+          REPO: ${{ matrix.target.repo }}
+        run: |
+          python3 community/agent-conventions/generate.py apply "$REPO" target/AGENTS.md
+          # Claude Code reads CLAUDE.md; this one-liner points it at the same file.
+          printf '@AGENTS.md\n' > target/CLAUDE.md
+
+      - name: Open or update the sync pull request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.AGENT_CONVENTIONS_TOKEN }}
+          path: target
+          base: ${{ matrix.target.branch }}
+          branch: chore/sync-agent-conventions
+          commit-message: "chore: sync AGENTS.md from kairos-io/community"
+          title: "chore: sync AGENTS.md from kairos-io/community"
+          body: |
+            The shared agent conventions changed. This updates the generated
+            block in `AGENTS.md` to match
+            [`kairos-io/community/agent-conventions`](https://github.com/kairos-io/community/tree/main/agent-conventions).
+
+            Anything this repository added outside the generated markers is
+            preserved. To change the generated content, open a pull request
+            against `kairos-io/community` instead of editing this file.
+          delete-branch: true

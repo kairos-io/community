@@ -1,0 +1,33 @@
+# Copy this into a downstream repository as
+# .github/workflows/agents-md-drift-check.yml
+#
+# It fails the build if AGENTS.md's generated block has been edited by hand,
+# which is what keeps "generated" honest. Editing the block locally is the one
+# failure mode a push-based sync has, and this closes it.
+name: AGENTS.md drift check
+
+on:
+  pull_request:
+    paths:
+      - "AGENTS.md"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check out the conventions
+        uses: actions/checkout@v4
+        with:
+          repository: kairos-io/community
+          path: .community
+
+      - name: Verify AGENTS.md matches the shared sources
+        env:
+          # The name of this repository as it appears in repos.json.
+          REPO: ${{ github.event.repository.name }}
+        run: python3 .community/agent-conventions/generate.py check "$REPO" AGENTS.md
