@@ -134,6 +134,9 @@ def audit(only: str | None = None):
         if only in EXCLUDE:
             sys.exit(f"note: {ORG}/{only} is excluded from the audit "
                      f"({EXCLUDE[only]})")
+        if repos[only]:
+            sys.exit(f"note: {ORG}/{only} is archived; the audit skips "
+                     f"archived repositories")
         active = [only]
 
     grants, unreadable_teams = {}, []
@@ -239,8 +242,9 @@ def main() -> None:
         existing = open_audit_issue()
         if existing:
             gh("issue", "comment", existing, "--repo", ISSUE_REPO,
-               "--body", "Resolved: all repos now match the governance mapping. Closing.")
-            gh("issue", "close", existing, "--repo", ISSUE_REPO)
+               "--body", "Resolved: all repos now match the governance mapping. Closing.",
+               check=True)
+            gh("issue", "close", existing, "--repo", ISSUE_REPO, check=True)
             print(f"Closed resolved issue #{existing}")
         return
 
