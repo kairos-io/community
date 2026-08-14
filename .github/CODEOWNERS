@@ -1,0 +1,12 @@
+# Every pull request in this repo requests a review from the maintainers team.
+#
+# Without this file GitHub requests nobody. The org ruleset on `main` requires
+# one approving review, but it sets `required_reviewers: []` and
+# `require_code_owner_review: false`, so a pull request opens with no reviewer
+# and generates no notification. Automated pull requests are the ones that go
+# unnoticed, because no human is watching for them.
+#
+# The team needs write access or better for GitHub to honour this. The
+# `maintainers` team has `maintain` on this repo.
+
+* @kairos-io/maintainers
