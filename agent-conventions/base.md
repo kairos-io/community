@@ -5,23 +5,45 @@ usually cross repository boundaries, so orient yourself before editing.
 
 ## Repository map
 
-| Repo | What it is |
+Most of what used to be one repository per component now lives inside `kairos`.
+An assistant that learned this project before the move will look for
+repositories that no longer accept changes, so find the directory first.
+
+| Where | What it is |
 |---|---|
-| `kairos` | Umbrella repo: docs entry point, e2e tests, release orchestration, **and the issue tracker for the whole org** |
-| `kairos-sdk` | Shared Go library. Changes here ripple everywhere downstream |
-| `kairos-agent` | The in-system agent: install, upgrade, reset |
-| `immucore` | Initramfs and mount logic. Boot-critical |
+| `kairos` | The main repository, and **the issue tracker for the whole org** |
+| `kairos/sdk` | Shared Go library. Changes here reach every other directory |
+| `kairos/agent` | The in-system agent: install, upgrade, reset |
+| `kairos/immucore` | Initramfs and mount logic. Boot-critical |
+| `kairos/kairos-init` | Turns a base image into a Kairos image |
+| `kairos/installer` | The interactive installer |
+| `kairos/provider` | The Kubernetes provider, for k3s and k0s |
+| `kairos/kcrypt` | Network-based unlock for encrypted partitions |
+| `kairos/tests` | The end-to-end and boot suites. A separate Go module |
 | `AuroraBoot` | Builds ISOs, raw disks and netboot artifacts |
-| `kairos-init` | Turns a base image into a Kairos image |
-| `hadron` | Minimal base OS built from source |
-| `kcrypt-discovery-challenger` | Network-based unlock for encrypted partitions |
+| `hadron`, `hadron-layers` | Minimal base OS built from source, and its layers |
 | `kairos-operator` | The Kubernetes operator |
-| `provider-kairos`, `osbuilder` | Kubernetes provider and image build tooling |
+| `cluster-api-provider-kairos` | The Cluster API provider |
+| `kairos-docs` | The website and the documentation |
+| `packages` | Package specifications |
 | `mudler/yip` | The cloud-config engine Kairos runs on. Outside the org, same people |
 
-**Dependency direction:** `kairos-sdk` → (`kairos-agent`, `immucore`, `AuroraBoot`) → `kairos`.
-A change to the SDK is not finished until the consuming repos are bumped to a
-released SDK version. Do not pin a consumer to an unreleased pseudo-version.
+The repositories those components came from are archived and read-only:
+`kairos-sdk`, `kairos-agent`, `immucore`, `kairos-init`, `provider-kairos`,
+`kcrypt-discovery-challenger` and `osbuilder`. A pull request against one of
+them cannot merge. If a search result or a stale memory sends you to one of
+them, the change belongs in the matching directory of `kairos` instead.
+
+**`kairos` is a single Go module.** Everything above under `kairos/` builds
+from one `go.mod` at the repository root, so a change to `sdk/` and its caller
+in `agent/` is one commit in one pull request. There is no release step between
+them and nothing to pin. `kairos/tests` is a separate module on purpose, to
+keep the test suite's dependencies out of the shipped binary.
+
+**Between repositories, the bump is still a step.** `AuroraBoot` depends on
+released versions of `kairos` and `kairos-operator`, and a change to either is
+not finished until the consumer is raised to a released tag. Where the
+dependency publishes tags, pin a tag, not a pseudo-version.
 
 **Fix things where they are broken.** Every repository above is maintained by
 the same people, `mudler/yip` included. If the correct fix belongs upstream,
@@ -78,8 +100,9 @@ system by heart.
 
 ## Things that will trip you up
 
-- **The default branch is not the same everywhere.** `kairos` and `osbuilder`
-  use `master`; every other repo uses `main`. Check before branching.
+- **The default branch is not the same everywhere.** `kairos` and `go-nodepair`
+  use `master`, and most of the rest use `main`. Do not assume either: read
+  `git symbolic-ref refs/remotes/origin/HEAD` before you branch.
 - **Pull requests from forks cannot read repository secrets.** Image-build jobs
   fail within seconds at "Login to registry". That failure is structural, not
   something your change caused. Do not try to fix it, and do not tell a
@@ -96,8 +119,10 @@ system by heart.
 ## Shared skills
 
 Reusable, tested procedures for the hard parts live in the `kairos-io/skills`
-repository: driving QEMU headlessly, testing immucore in a real boot, cutting a
-backport release. Prefer an existing skill over improvising.
+repository: driving QEMU headlessly, testing immucore in a real boot, testing
+the installer on a Hadron image, cutting a backport release. Prefer an existing
+skill over improvising. The repository is private, which is why it is named
+here and not linked.
 
 ## AI-assisted contributions
 
