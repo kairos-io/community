@@ -38,9 +38,12 @@ jobs:
             Automated monthly refresh of the **Last activity** column in
             `CONTRIBUTORS.md`.
 
-            Recency is the most recent of each contributor's issue/PR
-            involvement and commits across the public `kairos-io` org. See
-            `GOVERNANCE.md` for the off-boarding guidance this supports.
+            Recency is the most recent action each contributor took
+            themselves across the public `kairos-io` org: opening an issue or
+            pull request, commenting on one, reviewing one, or authoring a
+            commit. Being mentioned or assigned by someone else does not
+            count. See `GOVERNANCE.md` for the off-boarding guidance this
+            supports.
 
             _This PR is regenerated each run; no manual edits needed._
           branch: chore/contributor-activity
