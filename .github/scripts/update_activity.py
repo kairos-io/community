@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 """Annotate CONTRIBUTORS.md with each contributor's most recent activity.
 
-For every contributor listed in CONTRIBUTORS.md, this queries the public
-GitHub Search API for the most recent thing they were involved in across the
-kairos-io org (issues, PRs, comments, reviews, mentions) and their most recent
-commit. The newer of the two determines a coarse recency bucket and a link to
-that activity, which is written back into the table as a "Last activity" column.
+For every contributor listed in CONTRIBUTORS.md, this reports the most recent
+thing the contributor themselves did across the kairos-io org: opened an issue
+or pull request, commented on one, reviewed one, or authored a commit. That
+determines a coarse recency bucket and a link to that activity, which is
+written back into the table as a "Last activity" column.
+
+Only the contributor's own actions count. Being mentioned or assigned by
+someone else, and other people bumping a thread the contributor once touched,
+are deliberately not activity: GOVERNANCE.md reads this column as "has this
+person contributed", so it has to measure contribution and nothing else.
 
 Purely informational: it supports the GOVERNANCE.md off-boarding review, it does
 not take any action on its own. See .github/workflows/contributor-activity.yml.
@@ -126,21 +131,141 @@ def parse_ts(value):
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
-def latest_involvement(handle):
-    """Most recent issue/PR the user is involved in, org-wide. -> (ts, url)."""
+def search_issues(query, sort, per_page):
+    """Run an issue search, returning its items (possibly empty)."""
     data = api_get(
         "/search/issues",
-        {
-            "q": f"org:{ORG} involves:{handle}",
-            "sort": "updated",
-            "order": "desc",
-            "per_page": 1,
-        },
+        {"q": query, "sort": sort, "order": "desc", "per_page": per_page},
     )
-    items = (data or {}).get("items") or []
+    return (data or {}).get("items") or []
+
+
+def repo_of(item):
+    """'kairos-io/kairos' for a search item, from its repository_url."""
+    url = item.get("repository_url") or ""
+    _, _, name = url.partition("/repos/")
+    return name
+
+
+def _latest_by(entries, handle, login_of, stamp_of):
+    """Newest stamp among entries written by handle. -> ts or None."""
+    wanted = handle.lower()
+    stamps = [
+        parse_ts(stamp_of(e))
+        for e in entries
+        if (login_of(e) or "").lower() == wanted
+    ]
+    stamps = [t for t in stamps if t]
+    return max(stamps) if stamps else None
+
+
+def _paged(path):
+    """Yield each page of a core-API list endpoint until it runs short."""
+    page = 1
+    while True:
+        data = api_get(path, {"per_page": 100, "page": page})
+        if not data:
+            return
+        yield data
+        if len(data) < 100:
+            return
+        page += 1
+
+
+def own_comment_ts(repo, number, handle):
+    """When the contributor last commented on this thread. -> ts or None."""
+    best = None
+    for chunk in _paged(f"/repos/{repo}/issues/{number}/comments"):
+        ts = _latest_by(
+            chunk, handle, lambda c: (c.get("user") or {}).get("login"),
+            lambda c: c.get("created_at"),
+        )
+        if ts and (best is None or ts > best):
+            best = ts
+    return best
+
+
+def own_review_ts(repo, number, handle):
+    """When the contributor last submitted a review here. -> ts or None."""
+    best = None
+    for chunk in _paged(f"/repos/{repo}/pulls/{number}/reviews"):
+        ts = _latest_by(
+            chunk, handle, lambda r: (r.get("user") or {}).get("login"),
+            lambda r: r.get("submitted_at"),
+        )
+        if ts and (best is None or ts > best):
+            best = ts
+    return best
+
+
+def latest_authored(handle):
+    """When the contributor last opened an issue/PR. -> (ts, url).
+
+    Exact, and one request: the search is sorted by creation and the item's
+    own created_at is the event.
+    """
+    items = search_issues(f"org:{ORG} author:{handle}", "created", 1)
     if not items:
         return None, None
-    return parse_ts(items[0].get("updated_at")), items[0].get("html_url")
+    return parse_ts(items[0].get("created_at")), items[0].get("html_url")
+
+
+# How many threads per qualifier to consider when resolving the contributor's
+# own last comment or review. Search orders these by thread update time, which
+# is an upper bound on anything inside the thread, so the walk below almost
+# always stops after the first one or two; a generous cap costs nothing extra
+# but makes it very unlikely that the thread they last spoke in falls off it.
+MAX_CANDIDATES = 50
+
+
+def latest_participation(handle, floor=None):
+    """When the contributor last commented on or reviewed a thread.
+
+    Search can only order threads by *their* update time, which is why the
+    naive query credited a contributor for other people's bumps. That time is
+    however an upper bound on anything the contributor did inside the thread,
+    so walk the candidates newest-first and resolve each one against the real
+    comment and review timestamps, stopping as soon as the next candidate can
+    no longer beat what has already been found.
+
+    `floor` is a timestamp the caller already knows about from elsewhere (the
+    commit search). Candidates that cannot beat it are not worth resolving,
+    since the caller would discard the answer anyway.
+    """
+    best_ts, best_url = latest_authored(handle)
+
+    candidates = {}
+    for qualifier in ("commenter", "reviewed-by"):
+        for item in search_issues(
+            f"org:{ORG} {qualifier}:{handle}", "updated", MAX_CANDIDATES
+        ):
+            entry = candidates.setdefault(
+                item.get("html_url"), {"item": item, "qualifiers": set()}
+            )
+            entry["qualifiers"].add(qualifier)
+
+    ordered = sorted(
+        candidates.values(),
+        key=lambda e: e["item"].get("updated_at") or "",
+        reverse=True,
+    )
+    for entry in ordered:
+        item = entry["item"]
+        upper_bound = parse_ts(item.get("updated_at"))
+        bound = max([t for t in (best_ts, floor) if t], default=None)
+        if bound and upper_bound and upper_bound <= bound:
+            break
+        repo, number = repo_of(item), item.get("number")
+        if not repo or not number:
+            continue
+        stamps = [own_comment_ts(repo, number, handle)]
+        if item.get("pull_request") and "reviewed-by" in entry["qualifiers"]:
+            stamps.append(own_review_ts(repo, number, handle))
+        stamps = [t for t in stamps if t]
+        if stamps and (best_ts is None or max(stamps) > best_ts):
+            best_ts, best_url = max(stamps), item.get("html_url")
+
+    return best_ts, best_url
 
 
 def latest_commit(handle):
@@ -173,10 +298,10 @@ def bucket_for(now, ts):
 
 def last_activity_cell(handle, now):
     """Compute the linked recency cell for a single contributor."""
-    inv_ts, inv_url = latest_involvement(handle)
     commit_ts, commit_url = latest_commit(handle)
+    part_ts, part_url = latest_participation(handle, floor=commit_ts)
 
-    candidates = [(t, u) for t, u in ((inv_ts, inv_url), (commit_ts, commit_url)) if t]
+    candidates = [(t, u) for t, u in ((part_ts, part_url), (commit_ts, commit_url)) if t]
     if not candidates:
         return NONE_LABEL
 
