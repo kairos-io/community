@@ -68,19 +68,15 @@ to something observed in our repositories.
 
 ## Open questions for review
 
-1. **`kairos-io/skills` is private**, so `base.md` names it without linking to
-   it — a link would 404 for most readers of this public repo. Making it public
-   would be better for contributors and is worth deciding on its own merits.
-2. **Which disclosure trailer?** The trailer is in `base.md` now — it was left
-   out of the first draft on the grounds that nobody actually used it, and
-   review said the team wants it, which settles that. What is still open is the
-   spelling: #4246 proposed `Co-developed-by:` following systemd, while
-   `Co-Authored-By:` is what GitHub itself recognises and renders. `base.md`
-   currently uses the former. Worth picking one deliberately.
-3. **The sync workflow needs an `AGENT_CONVENTIONS_TOKEN` secret** with
+1. **How AI involvement is disclosed.** #4246 proposed a `Co-developed-by:`
+   trailer following systemd, and `Co-Authored-By:` is what GitHub recognises
+   and renders. Review on kairos-io/kairos#4702 settled it differently: put the
+   disclosure in the pull request body, so there is one place to look and no
+   trailer to get wrong. `base.md` now says that. Worth confirming here.
+2. **The sync workflow needs an `AGENT_CONVENTIONS_TOKEN` secret** with
    `contents:write` and `pull-requests:write` on the target repositories.
    Nothing syncs until that exists.
-4. **This lives in `community` rather than a dedicated `agent-conventions`
+3. **This lives in `community` rather than a dedicated `agent-conventions`
    repo** as #4246 proposed. `community` already holds `GOVERNANCE.md` and
    `CONTRIBUTING.md`, so org-wide conventions are not out of place, and it
    avoids standing up a repository before we know this is worth keeping. Easy
