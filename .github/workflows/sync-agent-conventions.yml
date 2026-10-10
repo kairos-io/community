@@ -100,7 +100,22 @@ jobs:
           path: target
           base: ${{ matrix.target.branch }}
           branch: chore/sync-agent-conventions
-          commit-message: "chore: sync AGENTS.md from kairos-io/community"
+          # Attribute the commit to the automation that writes it. The action
+          # defaults author to github.actor, which here is whoever last touched
+          # agent-conventions/ or the workflow file, so a generated AGENTS.md
+          # gets credited to a maintainer who never wrote it. committer already
+          # defaults to this same bot; it is pinned so the two cannot drift.
+          author: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+          committer: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+          # The DCO app gates the targets in agent-conventions/repos.json and
+          # compares the trailer to the commit own author, so the sign-off has
+          # to name the identity set above. Without both, every sync pull
+          # request is red from the moment it opens, in nine repositories at
+          # once, while the sync itself still looks like it worked.
+          commit-message: |
+            chore: sync AGENTS.md from kairos-io/community
+
+            Signed-off-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
           title: "chore: sync AGENTS.md from kairos-io/community"
           body: |
             The shared agent conventions changed. This updates the generated
