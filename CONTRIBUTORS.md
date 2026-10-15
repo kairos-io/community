@@ -18,5 +18,6 @@ These are active contributors who have made multiple contributions to the projec
 | William Crum | [@wcrum](https://github.com/wcrum) | [🟡 This quarter](https://github.com/kairos-io/community/pull/22) |
 | Olivier Calzi | [@ocalzi](https://github.com/ocalzi) | [🟢 This week](https://github.com/kairos-io/kairos-docs/pull/649) |
 | Bohdan Leshchenko | [@thebhdn](https://github.com/thebhdn) | [🟢 This month](https://github.com/kairos-io/kairos-docs/pull/670) |
+| Erick Bourgeois | [@ebourgeois](https://github.com/ebourgeois) | [🟢 This week](https://github.com/kairos-io/kairos-docs/pull/730) |
 
 _Last activity refreshed 2026-08-01 (UTC)._
