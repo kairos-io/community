@@ -18,6 +18,5 @@ This page lists individual and organization stakeholders who are using or evalua
 
 | Person | Project | Description |
 |--------|---------|-------------|
-| [Tyler Hawkins](https://github.com/tyzbit) | Personal Homelab | Assortment of apps such as NextCloud, GoToSocial, Discord bots and much more |
 | [Bryan Lee](https://github.com/6ixfalls) | [TaoNet](https://taonet.work/) | K8s powered PaaS |
 | [Ludea](https://github.com/Ludea) | [Sparus](https://github.com/Ludea/Sparus) | Game launcher |
