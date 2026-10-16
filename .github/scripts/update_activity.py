@@ -32,11 +32,23 @@ CONTRIBUTORS_FILE = os.environ.get("CONTRIBUTORS_FILE", "CONTRIBUTORS.md")
 API = "https://api.github.com"
 ACTIVITY_HEADER = "Last activity"
 
-# Minimum spacing between Search API requests, to stay clear of the secondary
-# rate limits (~30 req/min authenticated). Applied once per request.
+# Minimum spacing between Search API requests, to stay under the primary search
+# budget (30 req/min authenticated). Applied once per request. It does not put
+# the run clear of the *secondary* limit, which is why api_get backs off.
 SLEEP_BETWEEN_CALLS = float(os.environ.get("ACTIVITY_SLEEP", "2"))
 # Retries for transient failures (network blips, rate limiting).
 MAX_RETRIES = 4
+# Upper bound on a single backoff sleep, so a stuck limit cannot hang the job.
+MAX_RETRY_WAIT = 120
+# Substrings that mark a 403 as a real credential or permission failure rather
+# than a rate limit. Anything else on a 403 is treated as a rate limit.
+AUTH_FAILURE_MARKERS = (
+    "credentials",
+    "not accessible by",
+    "requires authentication",
+    "must have admin",
+    "protected by organization",
+)
 
 # Bucket thresholds in days, evaluated in order; first match wins.
 BUCKETS = [
@@ -54,19 +66,33 @@ HANDLE_RE = re.compile(r"\[@([A-Za-z0-9-]+)\]")
 FOOTER_RE = re.compile(r"^_Last activity refreshed .*_$")
 
 
-def _is_rate_limited(exc):
-    """True if an HTTPError represents primary/secondary rate limiting."""
+def _api_message(exc):
+    """The API's own error message for a failed request, or "" if absent."""
+    try:
+        payload = json.loads(exc.read().decode("utf-8", "replace"))
+    except (ValueError, OSError):
+        return ""
+    return (payload or {}).get("message") or ""
+
+
+def _is_rate_limited(exc, message):
+    """True if an HTTPError represents primary/secondary rate limiting.
+
+    Follows the order GitHub documents for its own clients: honour Retry-After,
+    then an exhausted budget, and *otherwise* still back off, because a
+    secondary rate limit sends neither of those headers and is indistinguishable
+    from a permission error except by the message body.
+    """
     if exc.code == 429:
         return True
-    if exc.code == 403:
-        headers = exc.headers or {}
-        # Secondary limit signals a Retry-After; primary limit exhausts the
-        # remaining budget. A permission/auth 403 has neither.
-        if headers.get("Retry-After") is not None:
-            return True
-        if headers.get("X-RateLimit-Remaining") == "0":
-            return True
-    return False
+    if exc.code != 403:
+        return False
+    headers = exc.headers or {}
+    if headers.get("Retry-After") is not None:
+        return True
+    if headers.get("X-RateLimit-Remaining") == "0":
+        return True
+    return not any(marker in message.lower() for marker in AUTH_FAILURE_MARKERS)
 
 
 def _retry_wait(exc, attempt):
@@ -75,8 +101,11 @@ def _retry_wait(exc, attempt):
     retry_after = headers.get("Retry-After")
     if retry_after and retry_after.isdigit():
         return int(retry_after)
-    # Fall back to exponential-ish backoff.
-    return min(60, 5 * (attempt + 1))
+    reset = headers.get("X-RateLimit-Reset")
+    if headers.get("X-RateLimit-Remaining") == "0" and reset and reset.isdigit():
+        return max(1, min(MAX_RETRY_WAIT, int(reset) - int(time.time()) + 1))
+    # No header to go by: GitHub asks for at least a minute on a secondary limit.
+    return min(MAX_RETRY_WAIT, 60 * (attempt + 1))
 
 
 def api_get(path, params):
@@ -103,17 +132,22 @@ def api_get(path, params):
             with urllib.request.urlopen(req, timeout=30) as resp:
                 return json.load(resp)
         except urllib.error.HTTPError as exc:
-            if _is_rate_limited(exc):
+            message = _api_message(exc)
+            if _is_rate_limited(exc, message):
                 wait = _retry_wait(exc, attempt)
-                print(f"  rate limited, sleeping {wait}s", file=sys.stderr)
+                print(
+                    f"  rate limited ({message or exc.code}), sleeping {wait}s",
+                    file=sys.stderr,
+                )
                 time.sleep(wait)
                 continue
             if exc.code == 422:
                 return None  # query rejected / account gone
             if exc.code in (401, 403):
                 sys.exit(
-                    f"error: {exc.code} from {path} — check the token's "
-                    f"permissions; refusing to silently degrade output."
+                    f"error: {exc.code} from {path}: {message or 'no message'} "
+                    f"— check the token's permissions; refusing to silently "
+                    f"degrade output."
                 )
             print(f"  warning: {exc.code} for {url}", file=sys.stderr)
             return None
@@ -121,7 +155,10 @@ def api_get(path, params):
             print(f"  transient error ({exc}); retrying", file=sys.stderr)
             time.sleep(min(60, 5 * (attempt + 1)))
 
-    sys.exit(f"error: giving up on {path} after {MAX_RETRIES} attempts")
+    sys.exit(
+        f"error: giving up on {path} after {MAX_RETRIES} attempts; "
+        f"raise ACTIVITY_SLEEP if the search rate limit keeps rejecting the run."
+    )
 
 
 def parse_ts(value):
