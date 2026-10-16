@@ -10,6 +10,15 @@ on:
     branches: [main]
     paths:
       - "agent-conventions/**"
+  # The push trigger syncs a change to the sources. It cannot sync drift in a
+  # target, because this repository never sees a target change: a repo whose
+  # AGENTS.md is missing or hand-edited keeps it until somebody edits
+  # agent-conventions/ or remembers this workflow exists. The weekly run is what
+  # makes the set converge on its own. It costs nothing when every target
+  # already matches, because create-pull-request opens no pull request without
+  # a diff.
+  schedule:
+    - cron: "17 5 * * 1"
   workflow_dispatch: {}
 
 permissions:
@@ -22,6 +31,35 @@ jobs:
       targets: ${{ steps.targets.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
+
+      # The sync writes to other repositories, so GITHUB_TOKEN cannot do it and
+      # a PAT is required. Check for it here, once, instead of letting every
+      # matrix leg discover it: actions/checkout reports only "Input required
+      # and not supplied: token", which names neither the secret nor who can
+      # create it, and the step's echoed inputs do not show it either. That is
+      # how this workflow stayed broken from its first run without anyone
+      # reading the failure as a missing secret. See kairos-io/kairos#5136.
+      - name: Check the sync token is present
+        env:
+          SYNC_TOKEN: ${{ secrets.AGENT_CONVENTIONS_TOKEN }}
+        run: |
+          if [ -n "$SYNC_TOKEN" ]; then
+            exit 0
+          fi
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          ## `AGENT_CONVENTIONS_TOKEN` is not set
+
+          The sync checks out, pushes a branch to, and opens a pull request
+          against the repositories listed in `agent-conventions/repos.json`, so
+          this job's own `GITHUB_TOKEN` cannot do it.
+
+          A repository or organization admin has to add a secret named
+          `AGENT_CONVENTIONS_TOKEN` to `kairos-io/community`, holding a token
+          with `contents: write` and `pull-requests: write` on those
+          repositories. Nothing in this workflow can create it.
+          EOF
+          echo "::error::AGENT_CONVENTIONS_TOKEN is not set in kairos-io/community. An admin has to create it, with contents:write and pull-requests:write on the repositories in agent-conventions/repos.json. See kairos-io/kairos#5136."
+          exit 1
 
       - id: targets
         run: echo "matrix=$(python3 agent-conventions/generate.py repos)" >> "$GITHUB_OUTPUT"
@@ -62,7 +100,22 @@ jobs:
           path: target
           base: ${{ matrix.target.branch }}
           branch: chore/sync-agent-conventions
-          commit-message: "chore: sync AGENTS.md from kairos-io/community"
+          # Attribute the commit to the automation that writes it. The action
+          # defaults author to github.actor, which here is whoever last touched
+          # agent-conventions/ or the workflow file, so a generated AGENTS.md
+          # gets credited to a maintainer who never wrote it. committer already
+          # defaults to this same bot; it is pinned so the two cannot drift.
+          author: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+          committer: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+          # The DCO app gates the targets in agent-conventions/repos.json and
+          # compares the trailer to the commit own author, so the sign-off has
+          # to name the identity set above. Without both, every sync pull
+          # request is red from the moment it opens, in nine repositories at
+          # once, while the sync itself still looks like it worked.
+          commit-message: |
+            chore: sync AGENTS.md from kairos-io/community
+
+            Signed-off-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
           title: "chore: sync AGENTS.md from kairos-io/community"
           body: |
             The shared agent conventions changed. This updates the generated
