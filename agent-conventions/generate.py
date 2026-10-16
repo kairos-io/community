@@ -22,7 +22,7 @@ import sys
 HERE = pathlib.Path(__file__).resolve().parent
 SOURCE = "kairos-io/community/agent-conventions"
 
-BEGIN = f"<!-- BEGIN GENERATED FROM {SOURCE} — DO NOT EDIT THIS BLOCK BY HAND -->"
+BEGIN = f"<!-- BEGIN GENERATED FROM {SOURCE}. DO NOT EDIT THIS BLOCK BY HAND. -->"
 END = "<!-- END GENERATED -->"
 
 CUSTOM_HEADER = """
@@ -98,7 +98,7 @@ def main():
         if existing != wanted:
             sys.exit(
                 f"{target} is out of date with {SOURCE}.\n"
-                f"Do not edit the generated block by hand — it is overwritten on "
+                f"Do not edit the generated block by hand: it is overwritten on "
                 f"every sync.\nRegenerate with: generate.py apply {repo} {target}"
             )
         return
