@@ -41,8 +41,9 @@ locally because you assume the real fix will be slow to merge.
 - Keep pull requests small and single-purpose.
 - Never force-push or rebase someone else's branch, and never stack a pull
   request on another unmerged branch.
-- Never enable GPG signing, `-S`. It blocks on a passphrase nobody will type.
-  That is a different flag from `-s`.
+- Never pass `-S`/`--gpg-sign`, and never change git config to turn signing on
+  or off. Signing is the contributor's own setup, and forcing it on blocks on a
+  passphrase nobody will type. `-S` is a different flag from `-s`.
 
 ## Writing
 
