@@ -32,7 +32,20 @@ jobs:
       - name: Open or update pull request
         uses: peter-evans/create-pull-request@v6
         with:
-          commit-message: "chore: refresh contributor last-activity"
+          # Attribute the commit to the automation that makes it. Left unset,
+          # the action defaults the author to github.actor, which on this
+          # schedule is whoever last edited this workflow, so a generated tree
+          # gets credited to a human who never saw it.
+          author: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+          committer: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+          # The DCO app gates this repository and compares the trailer to the
+          # commit's own author, so the sign-off has to name the identity set
+          # above. Without it every monthly pull request opens red and only
+          # lands if a maintainer merges past the check.
+          commit-message: |
+            chore: refresh contributor last-activity
+
+            Signed-off-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
           title: "chore: refresh contributor last-activity"
           body: |
             Automated monthly refresh of the **Last activity** column in
